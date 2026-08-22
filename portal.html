@@ -7236,7 +7236,7 @@ async function renderBancoHoras(c) {
   // Fallback: localStorage (chave usada pelo RH local)
   if (!lancamentos.length) {
     try {
-      const stored = JSON.parse(localStorage.getItem('fcrh_bancohoras') || '{}');
+      const stored = JSON.parse(localStorage.getItem('saas_bancohoras') || '{}');
       const raw = stored[EMP.id];
       if (Array.isArray(raw) && raw.length) lancamentos = raw;
     } catch(e) {}
@@ -7253,7 +7253,7 @@ async function renderBancoHoras(c) {
 
   // Carrega minhas solicitações
   let minhasSols = [];
-  try { minhasSols = JSON.parse(localStorage.getItem('fcrh_bh_solicitacoes') || '[]').filter(s => s.empId === EMP.id); } catch(e) {}
+  try { minhasSols = JSON.parse(localStorage.getItem('saas_bh_solicitacoes') || '[]').filter(s => s.empId === EMP.id); } catch(e) {}
   if (DB) {
     try {
       const snap = await DB.collection('bh_solicitacoes').where('empId','==',EMP.id).orderBy('criadoEm','desc').limit(20).get();
@@ -7467,9 +7467,9 @@ async function _enviarSolicitacaoPortal() {
 
   // Salva no localStorage como backup
   try {
-    const existing = JSON.parse(localStorage.getItem('fcrh_bh_solicitacoes') || '[]');
+    const existing = JSON.parse(localStorage.getItem('saas_bh_solicitacoes') || '[]');
     existing.push(sol);
-    localStorage.setItem('fcrh_bh_solicitacoes', JSON.stringify(existing));
+    localStorage.setItem('saas_bh_solicitacoes', JSON.stringify(existing));
   } catch(e) {}
 
   document.getElementById('_bh_modal_overlay')?.remove();
