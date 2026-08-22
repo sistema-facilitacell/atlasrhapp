@@ -47,17 +47,17 @@ const SB_KEY_DEFAULT = 'sb_publishable_f9waxmsl7ze20hcl0G8dzQ_YhHoBIOK';
 // senão o localStorage continuaria sobrepondo a chave correta acima.
 (function(){
   try{
-    const _k = localStorage.getItem('fcrh_sb_key');
+    const _k = localStorage.getItem('saas_sb_key');
     // Descarta o que estiver guardado se não for uma publishable key: tanto os
     // JWTs legados quanto textos inválidos ficavam à frente da chave correta
     // definida acima, e o Supabase seguia recusando a conexão.
     if(_k && !_k.startsWith('sb_publishable_')){
-      localStorage.removeItem('fcrh_sb_key');
+      localStorage.removeItem('saas_sb_key');
       console.log('[Supabase] Chave antiga removida do navegador — usando a chave atual do sistema');
     }
   }catch(_){}
 })();
-let SB_KEY = localStorage.getItem('fcrh_sb_key') || SB_KEY_DEFAULT;
+let SB_KEY = localStorage.getItem('saas_sb_key') || SB_KEY_DEFAULT;
 
 // Chaves sensíveis que vão para o Supabase (além do Firebase)
 const SB_SENSITIVE_KEYS = new Set([
@@ -96,13 +96,13 @@ const _SB_CRYPTO = {
     // e nenhum conseguia abrir os dados do outro, o que tornava a cópia do
     // Supabase inútil justamente numa recuperação. Agora a senha é criada uma
     // única vez e guardada em config/enc no Firestore, de onde todos a leem.
-    let pwd = localStorage.getItem('fcrh_enc_pwd_shared');
+    let pwd = localStorage.getItem('saas_enc_pwd_shared');
     if(!pwd && typeof FBASE!=='undefined' && FBASE){
       try{
         const snap = await FBASE.collection('config').doc('enc').get();
         if(snap.exists && snap.data() && snap.data().pwd){
           pwd = snap.data().pwd;
-          localStorage.setItem('fcrh_enc_pwd_shared', pwd);
+          localStorage.setItem('saas_enc_pwd_shared', pwd);
           console.log('[Crypto] Senha compartilhada carregada do Firebase');
         }
       }catch(e){ console.warn('[Crypto] Não foi possível ler a senha compartilhada:', e && e.message); }
@@ -112,7 +112,7 @@ const _SB_CRYPTO = {
       const arr = new Uint8Array(24);
       crypto.getRandomValues(arr);
       pwd = btoa(String.fromCharCode(...arr));
-      localStorage.setItem('fcrh_enc_pwd_shared', pwd);
+      localStorage.setItem('saas_enc_pwd_shared', pwd);
       if(typeof FBASE!=='undefined' && FBASE){
         try{
           // merge:false com verificação evita que dois dispositivos criem senhas
@@ -120,7 +120,7 @@ const _SB_CRYPTO = {
           const snap = await FBASE.collection('config').doc('enc').get();
           if(snap.exists && snap.data() && snap.data().pwd){
             pwd = snap.data().pwd;   // outro dispositivo chegou primeiro: usa a dele
-            localStorage.setItem('fcrh_enc_pwd_shared', pwd);
+            localStorage.setItem('saas_enc_pwd_shared', pwd);
           }else{
             await FBASE.collection('config').doc('enc').set({pwd, criadoEm:new Date().toISOString()});
             console.log('[Crypto] Senha compartilhada criada e publicada');
@@ -183,9 +183,9 @@ const _SB_CRYPTO = {
 //
 // O código foi mantido, mas inerte — nada é lido nem gravado lá. Para religar
 // (não recomendado sem antes revisar a cifragem):
-//   localStorage.setItem('fcrh_supabase_on','1')
+//   localStorage.setItem('saas_supabase_on','1')
 const SUPABASE_ATIVO = (function(){
-  try{ return localStorage.getItem('fcrh_supabase_on')==='1'; }catch(_){ return false; }
+  try{ return localStorage.getItem('saas_supabase_on')==='1'; }catch(_){ return false; }
 })();
 
 async function connectSupabase(){
@@ -423,8 +423,8 @@ function _sbUpdateUI(state){
 function saveSupabaseKey(url, key){
   const k = (key||'').trim();
   const u = (url||'').trim();
-  if(k) localStorage.setItem('fcrh_sb_key', k);
-  if(u) localStorage.setItem('fcrh_sb_url', u);
+  if(k) localStorage.setItem('saas_sb_key', k);
+  if(u) localStorage.setItem('saas_sb_url', u);
   SB_KEY = k || SB_KEY;
   // Reconecta com a nova chave
   SB_READY = false; SBASE = null; SB_ERROR = null;
@@ -466,7 +466,7 @@ async function openSupabaseConfigModal(){
   // como a chave padrão do arquivo não fica guardada lá, o modal mostrava
   // "chave inválida" mesmo com o Supabase conectado — e levava a pessoa a
   // recolar a chave à toa em cada computador.
-  const chaveAtual = localStorage.getItem('fcrh_sb_key') || (typeof SB_KEY!=='undefined' ? SB_KEY : '') || '';
+  const chaveAtual = localStorage.getItem('saas_sb_key') || (typeof SB_KEY!=='undefined' ? SB_KEY : '') || '';
   const chaveValida = chaveAtual.startsWith('eyJ') || chaveAtual.startsWith('sb_publishable_');
   openModal('🔒 Configurar Supabase',`
     ${chaveValida?'':`<div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:9px;padding:12px 14px;margin-bottom:12px;font-size:13px;color:#DC2626">
@@ -2070,7 +2070,7 @@ function calcIRRF(b, rendimentoBruto){
 // ════════════════════════════════════════════════════
 // BUG-08 FIX: comprovantes adicionado ao APP para evitar APP.comprovantes undefined.
 // O módulo usa caminho próprio de persistência (Firestore collection separada +
-// localStorage 'fcrh_comprovantes') — não entra em _VALID_KEYS/fbLoad para não
+// localStorage 'saas_comprovantes') — não entra em _VALID_KEYS/fbLoad para não
 // conflitar com a lógica da collection comprovantes_pagamento.
 let APP={employees:[],candidates:[],pontos:{},financeiro:{},atestados:[],admissoes:{},demissoes:{},salarios:{},holRascunho:{},metaDiaria:{},faltaPagar:[],advertencias:[],ferias:[],avaliacoes:[],comunicados:[],bancohoras:{},contratos:[],comprovantes:[],bhSolicitacoes:[],empresaCfg:{},lancamentos_bh:{},portalSolicitacoes:[],ocorrenciasContratados:[],agendaEventos:[],adiantamentos:[]};
 
@@ -2117,7 +2117,7 @@ const CHK=[{k:'docs',l:'Documentos pessoais'},{k:'foto',l:'Foto 3x4'},{k:'contra
 // localStorage save/load
 function lsSave(k){
   try{
-    localStorage.setItem('fcrh_'+k,JSON.stringify(APP[k]));
+    localStorage.setItem('saas_'+k,JSON.stringify(APP[k]));
   }catch(e){
     // QuotaExceededError — localStorage cheio
     if(e.name==='QuotaExceededError'||e.code===22){
@@ -2127,11 +2127,11 @@ function lsSave(k){
         const toRemove=[];
         for(let i=0;i<localStorage.length;i++){
           const key=localStorage.key(i);
-          if(key&&key.startsWith('fcrh_file_'))toRemove.push(key);
+          if(key&&key.startsWith('saas_file_'))toRemove.push(key);
         }
         toRemove.forEach(k2=>localStorage.removeItem(k2));
         // Tenta salvar novamente após limpeza
-        localStorage.setItem('fcrh_'+k,JSON.stringify(APP[k]));
+        localStorage.setItem('saas_'+k,JSON.stringify(APP[k]));
         toast('⚠ Armazenamento local cheio — arquivos antigos removidos para liberar espaço.','err');
       }catch(e2){
         console.error('[localStorage] Falha mesmo após limpeza:',e2);
@@ -2140,19 +2140,19 @@ function lsSave(k){
     }
   }
 }
-function lsLoad(k){try{const d=localStorage.getItem('fcrh_'+k);return d?JSON.parse(d):null;}catch{return null;}}
-function saveFile(id,b64){try{localStorage.setItem('fcrh_file_'+id,b64);}catch{}}
+function lsLoad(k){try{const d=localStorage.getItem('saas_'+k);return d?JSON.parse(d):null;}catch{return null;}}
+function saveFile(id,b64){try{localStorage.setItem('saas_file_'+id,b64);}catch{}}
 function loadFile(id){
   try{
     // 1. Tenta localStorage (upload feito neste dispositivo)
-    const ls=localStorage.getItem('fcrh_file_'+id);
+    const ls=localStorage.getItem('saas_file_'+id);
     if(ls) return ls;
     // 2. Fallback: busca arquivoBase64 salvo diretamente no registro (origemPortal)
     const src=[].concat(APP.atestados||[],[].concat(...Object.values(APP.admissoes||{})));
     for(const rec of src){
       if((rec.arquivoId===id||rec.id===id||rec.id+'_ates_arquivo'===id)&&rec.arquivoBase64){
         // Armazena no localStorage para acesso futuro neste dispositivo
-        try{localStorage.setItem('fcrh_file_'+id,rec.arquivoBase64);}catch{}
+        try{localStorage.setItem('saas_file_'+id,rec.arquivoBase64);}catch{}
         return rec.arquivoBase64;
       }
     }
@@ -2550,7 +2550,7 @@ function loadLocal(){
 // se outro dispositivo editar depois, a versão mais nova vence).
 function _reaplicarOverridesPonto(){
   let _ov;
-  try{ _ov=JSON.parse(localStorage.getItem('fcrh_ponto_overrides')||'{}'); }catch(_){ return; }
+  try{ _ov=JSON.parse(localStorage.getItem('saas_ponto_overrides')||'{}'); }catch(_){ return; }
   if(!_ov||typeof _ov!=='object')return;
   let aplicados=0;
   Object.keys(_ov).forEach(k=>{
@@ -3121,7 +3121,7 @@ function downloadBackupJSON(){
     document.body.appendChild(a); a.click();
     document.body.removeChild(a);
     setTimeout(()=>URL.revokeObjectURL(url),5000);
-    localStorage.setItem('fcrh_last_backup_ts', Date.now().toString());
+    localStorage.setItem('saas_last_backup_ts', Date.now().toString());
     // Registra a data para o alerta de "backup vencido" no dashboard
     try{ if(typeof _backupRegistrar==='function') _backupRegistrar(); }catch(_){}
     try{ if(typeof _dashCacheInvalidate==='function') _dashCacheInvalidate(); }catch(_){}
@@ -3135,7 +3135,7 @@ function downloadBackupJSON(){
 
 function _autoBackupWeekly(){
   const SEVEN_DAYS=7*24*60*60*1000;
-  const lastTs=parseInt(localStorage.getItem('fcrh_last_backup_ts')||'0');
+  const lastTs=parseInt(localStorage.getItem('saas_last_backup_ts')||'0');
   const daysSince = lastTs ? Math.floor((Date.now()-lastTs)/86400000) : null;
   // FIX-BUG19: exibe aviso visual persistente quando backup está vencido (>7 dias ou nunca feito)
   _checkBackupStaleBanner(lastTs, SEVEN_DAYS);
@@ -3761,7 +3761,7 @@ async function abrirModalTokenPortal(empId){
 // creditos da conta. Configure em Configurar IA; fica salva em
 // config/ia_keys no Firestore e vale para todos os dispositivos.
 const ANTHROPIC_KEY_HARD = '';
-const ANTHROPIC_KEY_DEFAULT = localStorage.getItem('fcrh_anthropic_key') || ANTHROPIC_KEY_HARD;
+const ANTHROPIC_KEY_DEFAULT = localStorage.getItem('saas_anthropic_key') || ANTHROPIC_KEY_HARD;
 let ANTHROPIC_KEY = ANTHROPIC_KEY_DEFAULT;
 
 // ── Chave da API Groq ──────────────────────────────────────────────────────
@@ -3777,8 +3777,8 @@ let ANTHROPIC_KEY = ANTHROPIC_KEY_DEFAULT;
 // ⚙ Configurar IA — sem precisar editar o arquivo nem subir versão nova.
 const GROQ_KEY_DEFAULT = ''; // chave removida — configure em ⚙ Configurar IA (salva no Firestore)
 // Migração: se o navegador tem chave antiga (revogada) salva, troca pela atual.
-(function(){ const _oldKeys=[]; if(_oldKeys.includes(localStorage.getItem('fcrh_groq_key'))){ localStorage.setItem('fcrh_groq_key', GROQ_KEY_DEFAULT); } })();
-let GROQ_KEY = localStorage.getItem('fcrh_groq_key') || GROQ_KEY_DEFAULT;
+(function(){ const _oldKeys=[]; if(_oldKeys.includes(localStorage.getItem('saas_groq_key'))){ localStorage.setItem('saas_groq_key', GROQ_KEY_DEFAULT); } })();
+let GROQ_KEY = localStorage.getItem('saas_groq_key') || GROQ_KEY_DEFAULT;
 
 // Carrega a chave compartilhada do Firestore assim que o Firebase estiver pronto.
 function _carregarChavesIA(){
@@ -3788,16 +3788,16 @@ function _carregarChavesIA(){
     const d=snap.data()||{};
     if(d.groqKey){
       GROQ_KEY=d.groqKey;
-      try{ localStorage.setItem('fcrh_groq_key', d.groqKey); }catch(_){}
+      try{ localStorage.setItem('saas_groq_key', d.groqKey); }catch(_){}
       console.log('[Groq] Chave carregada do Firebase ✅');
     }
     if(d.groqModel){
       GROQ_MODEL=d.groqModel;
-      try{ localStorage.setItem('fcrh_groq_model', d.groqModel); }catch(_){}
+      try{ localStorage.setItem('saas_groq_model', d.groqModel); }catch(_){}
     }
     if(d.anthropicKey){
       ANTHROPIC_KEY=d.anthropicKey;
-      try{ localStorage.setItem('fcrh_anthropic_key', d.anthropicKey); }catch(_){}
+      try{ localStorage.setItem('saas_anthropic_key', d.anthropicKey); }catch(_){}
     }
   }).catch(function(e){ console.warn('[IA] Falha ao ler chaves do Firebase:', e&&e.message); });
 }
@@ -3806,8 +3806,8 @@ window._firebaseReadyCallbacks.push(_carregarChavesIA);
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const GROQ_MODEL_DEFAULT = 'openai/gpt-oss-120b';
 // Migração automática: usuários que tinham o Llama 70b antigo salvo passam para o novo padrão.
-(function(){ const _old='llama-3.3-70b-versatile'; if(localStorage.getItem('fcrh_groq_model')===_old){ localStorage.setItem('fcrh_groq_model', GROQ_MODEL_DEFAULT); } })();
-let GROQ_MODEL = localStorage.getItem('fcrh_groq_model') || GROQ_MODEL_DEFAULT;
+(function(){ const _old='llama-3.3-70b-versatile'; if(localStorage.getItem('saas_groq_model')===_old){ localStorage.setItem('saas_groq_model', GROQ_MODEL_DEFAULT); } })();
+let GROQ_MODEL = localStorage.getItem('saas_groq_model') || GROQ_MODEL_DEFAULT;
 
 // ── MEL-11: Modelo de IA centralizado ───────────────────────────────────────
 // Altere APENAS aqui ao atualizar a versão do modelo.
@@ -3816,7 +3816,7 @@ let GROQ_MODEL = localStorage.getItem('fcrh_groq_model') || GROQ_MODEL_DEFAULT;
 // erro "modelo inativo" ao usar o padrão.
 // Consulte: https://docs.anthropic.com/en/docs/about-claude/models/overview
 const AI_MODEL_DEFAULT = 'claude-sonnet-4-6';
-let AI_MODEL = localStorage.getItem('fcrh_ai_model') || AI_MODEL_DEFAULT;
+let AI_MODEL = localStorage.getItem('saas_ai_model') || AI_MODEL_DEFAULT;
 
 // Helper centralizado de chamada à API de IA — captura erros de modelo deprecado
 async function aiCall(payload, fallbackMsg = '⚠ IA temporariamente indisponível.'){
@@ -3886,7 +3886,7 @@ async function groqCall(systemPrompt, userPrompt, fallbackMsg = '⚠ Groq tempor
           const r = await _groqRaw(alt, systemPrompt, userPrompt);
           if(r.res.ok){
             console.warn('[Groq] ✅ Fallback para modelo:', alt, '— atualizando preferência.');
-            GROQ_MODEL = alt; try{ localStorage.setItem('fcrh_groq_model', alt); }catch(e){}
+            GROQ_MODEL = alt; try{ localStorage.setItem('saas_groq_model', alt); }catch(e){}
             const t = r.data.choices?.[0]?.message?.content || fallbackMsg;
             return { ok:true, text:t };
           }
@@ -3906,7 +3906,7 @@ async function groqCall(systemPrompt, userPrompt, fallbackMsg = '⚠ Groq tempor
 
 async function saveGroqKey(k){
   GROQ_KEY = k.trim() || GROQ_KEY_DEFAULT;
-  localStorage.setItem('fcrh_groq_key', GROQ_KEY);
+  localStorage.setItem('saas_groq_key', GROQ_KEY);
   // Grava também no Firestore: assim a chave vale para todos os dispositivos
   // e não precisa ficar escrita neste arquivo (que é público).
   try{
@@ -3928,7 +3928,7 @@ async function saveAnthropicKeyRemote(k){
 
 async function saveGroqModel(m){
   GROQ_MODEL = (m||'').trim() || GROQ_MODEL_DEFAULT;
-  localStorage.setItem('fcrh_groq_model', GROQ_MODEL);
+  localStorage.setItem('saas_groq_model', GROQ_MODEL);
   try{ if(FBASE) await FBASE.collection('config').doc('ia_keys').set({groqModel:GROQ_MODEL},{merge:true}); }catch(_){}
   console.log('[Groq] Modelo selecionado:', GROQ_MODEL);
   return Promise.resolve();
@@ -3978,7 +3978,7 @@ const EMPRESA_CFG_DEFAULT = {
 };
 let EMPRESA_CFG = (()=>{
   try{
-    const s=localStorage.getItem('fcrh_empresa_cfg');
+    const s=localStorage.getItem('saas_empresa_cfg');
     if(s){ const saved=JSON.parse(s); saved.logo=EMPRESA_CFG_DEFAULT.logo; return {...EMPRESA_CFG_DEFAULT,...saved}; }
     return EMPRESA_CFG_DEFAULT;
   }
@@ -3990,7 +3990,7 @@ document.addEventListener('DOMContentLoaded', () => { if(typeof updateBrand === 
 // Salva configuração de empresa (local + Firebase)
 async function saveEmpresaCfg(cfg){
   Object.assign(EMPRESA_CFG, cfg);
-  localStorage.setItem('fcrh_empresa_cfg', JSON.stringify(EMPRESA_CFG));
+  localStorage.setItem('saas_empresa_cfg', JSON.stringify(EMPRESA_CFG));
   if(FBASE){
     try{ await FBASE.collection('hr').doc('config').set({empresaCfg: EMPRESA_CFG},{merge:true}); }
     catch(e){ console.warn('[MEL-12] Firebase indisponível — empresa salva localmente'); }
@@ -4004,7 +4004,7 @@ async function loadEmpresaCfgFromCloud(){
     const snap = await FBASE.collection('hr').doc('config').get({source:'server'});
     if(snap.exists && snap.data().empresaCfg){
       Object.assign(EMPRESA_CFG, snap.data().empresaCfg);
-      localStorage.setItem('fcrh_empresa_cfg', JSON.stringify(EMPRESA_CFG));
+      localStorage.setItem('saas_empresa_cfg', JSON.stringify(EMPRESA_CFG));
       updateBrand();
     }
   }catch(e){ console.warn('[loadEmpresaCfgFromCloud] Falha ao sincronizar configuração da empresa:', e); }
@@ -4028,7 +4028,7 @@ function updateBrand() {
   // Se a logo salva começa com PNG (logo antiga), limpar para usar a nova
   if (EMPRESA_CFG.logo && EMPRESA_CFG.logo.startsWith('data:image/webp')) {
     EMPRESA_CFG.logo = EMPRESA_CFG_DEFAULT.logo;
-    try { localStorage.removeItem('fcrh_empresa_cfg'); } catch(e) {}
+    try { localStorage.removeItem('saas_empresa_cfg'); } catch(e) {}
   }
   if (EMPRESA_CFG.logo) {
     iconWrap.innerHTML = `<img src="${EMPRESA_CFG.logo}" alt="Logo" style="width:44px;height:44px;object-fit:contain;display:block">`;
@@ -4103,7 +4103,7 @@ async function openEmpresaCfgModal(){
         await saveEmpresaCfg({nomeRazao:g('ec-razao'),nomeFantasia:g('ec-fantasia'),cnpj:g('ec-cnpj'),cidade:g('ec-cidade'),uf:g('ec-uf').toUpperCase(),telefone:g('ec-tel'),email:g('ec-email'),endereco:g('ec-end'),logo:logoData});
         updateBrand();
         const selMod=g('ec-model'); const newModel=selMod==='custom'?g('ec-model-custom').trim():selMod;
-        if(newModel){ AI_MODEL=newModel; localStorage.setItem('fcrh_ai_model',AI_MODEL); if(FBASE)try{await FBASE.collection('hr').doc('config').set({aiModel:AI_MODEL},{merge:true});}catch(e){} }
+        if(newModel){ AI_MODEL=newModel; localStorage.setItem('saas_ai_model',AI_MODEL); if(FBASE)try{await FBASE.collection('hr').doc('config').set({aiModel:AI_MODEL},{merge:true});}catch(e){} }
         closeModal(); toast('✅ Configurações salvas!','ok');
       })()">💾 Salvar</button>
     </div>`,620);
@@ -4135,7 +4135,7 @@ async function loadAiModelFromCloud(){
     const snap = await FBASE.collection('hr').doc('config').get();
     if(snap.exists && snap.data().aiModel){
       AI_MODEL = snap.data().aiModel;
-      localStorage.setItem('fcrh_ai_model', AI_MODEL);
+      localStorage.setItem('saas_ai_model', AI_MODEL);
     }
   }catch(e){}
 }
@@ -4152,7 +4152,7 @@ async function loadAnthropicKeyFromCloud(){
 // que tenham acesso ao banco de dados.
 function saveAnthropicKey(k){
   ANTHROPIC_KEY = k.trim() || ANTHROPIC_KEY_DEFAULT;
-  if(ANTHROPIC_KEY) localStorage.setItem('fcrh_anthropic_key', ANTHROPIC_KEY);
+  if(ANTHROPIC_KEY) localStorage.setItem('saas_anthropic_key', ANTHROPIC_KEY);
   console.log('[IA] Chave Anthropic salva localmente ✅ (não enviada à nuvem por segurança)');
   return Promise.resolve(); // mantém compatibilidade com chamadas que usam .then()
 }
@@ -5379,7 +5379,7 @@ async function delEmp(id){
 
   // 6. Comprovantes (caminho próprio)
   APP.comprovantes = (APP.comprovantes||[]).filter(c=>c.empId!==id);
-  try{ localStorage.setItem('fcrh_comprovantes', JSON.stringify(APP.comprovantes)); }catch(e){}
+  try{ localStorage.setItem('saas_comprovantes', JSON.stringify(APP.comprovantes)); }catch(e){}
   if(FBASE){
     try{
       const snpComp = await FBASE.collection('comprovantes_pagamento').where('empId','==',id).get();
@@ -5792,7 +5792,7 @@ function openDia(d){
   // TRILHA DE AUDITORIA: se este dia já foi editado, mostra quem e quando.
   let _auditAviso='';
   try{
-    const _auditKey=`fcrh_ponto_audit_${empId}_${ano}_${mes}_${d}`;
+    const _auditKey=`saas_ponto_audit_${empId}_${ano}_${mes}_${d}`;
     const _hist=JSON.parse(localStorage.getItem(_auditKey)||'[]');
     if(_hist.length>0){
       const _ult=_hist[_hist.length-1];
@@ -6117,19 +6117,19 @@ function _executarSaveDia(d,k,status,entrada,saida_almoco,volta_almoco,saida_caf
   APP.pontos[k][d]=novo;
 
   // ── CAMADA DE PROTEÇÃO PERSISTENTE ──────────────────────────────────
-  // Guarda a edição num registro SEPARADO (fcrh_ponto_overrides) que é
+  // Guarda a edição num registro SEPARADO (saas_ponto_overrides) que é
   // re-aplicado sobre APP.pontos após QUALQUER carga da nuvem ou sync.
   // Garante que a edição do RH nunca seja perdida, mesmo se algum save
   // falhar ou um snapshot recarregar os dados.
   try{
-    const _ov=JSON.parse(localStorage.getItem('fcrh_ponto_overrides')||'{}');
+    const _ov=JSON.parse(localStorage.getItem('saas_ponto_overrides')||'{}');
     if(!_ov[k]) _ov[k]={};
     _ov[k][d]=novo;
-    localStorage.setItem('fcrh_ponto_overrides',JSON.stringify(_ov));
+    localStorage.setItem('saas_ponto_overrides',JSON.stringify(_ov));
   }catch(_ovErr){ console.warn('[overrides] erro ao gravar:',_ovErr); }
 
   // Guarda histórico de edições para auditoria (localStorage)
-  const auditKey=`fcrh_ponto_audit_${k}_${d}`;
+  const auditKey=`saas_ponto_audit_${k}_${d}`;
   const hist=JSON.parse(localStorage.getItem(auditKey)||'[]');
   const _quem=(typeof _auditUser==='function'?_auditUser():(APP?.currentUser?.email||'RH'));
   hist.push({antes:anterior||null,depois:novo,ts:new Date().toISOString(),por:_quem});
@@ -10632,7 +10632,7 @@ const ERRLOG_MAX = 60;              // quantos erros manter
 const APP_VERSION = '2026.08.18-1';
 window.APP_VERSION = APP_VERSION;
 
-const ERRLOG_KEY = 'fcrh_errlog';
+const ERRLOG_KEY = 'saas_errlog';
 
 function _errlogLer(){
   try{ return JSON.parse(localStorage.getItem(ERRLOG_KEY)||'[]'); }catch(_){ return []; }
@@ -12162,7 +12162,7 @@ window._firebaseReadyCallbacks.push(function(){
 // ── DECIFRAR COM SENHA ANTIGA ──────────────────────────────────────────────
 // Os dados corrompidos foram cifrados com a senha que ESTE navegador sorteou
 // antes de existir a senha compartilhada. Ela pode continuar guardada aqui em
-// 'fcrh_enc_pwd_dev' — se estiver, dá para reabrir e devolver os dados.
+// 'saas_enc_pwd_dev' — se estiver, dá para reabrir e devolver os dados.
 async function _decifrarComSenha(payload, senha){
   try{
     const raw=new TextEncoder().encode(senha);
@@ -12183,8 +12183,8 @@ async function repararDadosCifrados(){
   // Candidatas a senha: as que já passaram por este navegador.
   const senhas=[];
   try{
-    ['fcrh_enc_pwd_dev','fcrh_enc_pwd_shared'].forEach(k=>{ const v=localStorage.getItem(k); if(v) senhas.push({k,v}); });
-    const ss=sessionStorage.getItem('fcrh_enc_pwd'); if(ss) senhas.push({k:'sessão',v:ss});
+    ['saas_enc_pwd_dev','saas_enc_pwd_shared'].forEach(k=>{ const v=localStorage.getItem(k); if(v) senhas.push({k,v}); });
+    const ss=sessionStorage.getItem('saas_enc_pwd'); if(ss) senhas.push({k:'sessão',v:ss});
   }catch(_){}
 
   const alvos=[];
@@ -13174,7 +13174,7 @@ function _aplicarEdicaoEmpresaCarta(eid){
     const parts=end.split(',');
     EMPRESA_CFG.endereco=end;
   }
-  localStorage.setItem('fcrh_empresa_cfg',JSON.stringify(EMPRESA_CFG));
+  localStorage.setItem('saas_empresa_cfg',JSON.stringify(EMPRESA_CFG));
   if(FBASE){FBASE.collection('hr').doc('config').set({empresaCfg:EMPRESA_CFG},{merge:true}).catch(()=>{});}
   // Fecha painel e reabre a carta atualizada
   _toggleEditEmpresaCarta();
@@ -14890,8 +14890,8 @@ const CREDS_HASH = {
   // Para trocar de usuário/senha, execute no console:
   //   hashSHA256('NOVO_CPF').then(h => CREDS_HASH.user = h)
   //   hashSHA256('NOVA_SENHA').then(h => CREDS_HASH.pass = h)
-  CREDS_HASH.user = await hashSHA256(localStorage.getItem('fcrh_cred_u')||'03818244200');
-  CREDS_HASH.pass = await hashSHA256(localStorage.getItem('fcrh_cred_p')||'218939');
+  CREDS_HASH.user = await hashSHA256(localStorage.getItem('saas_cred_u')||'03818244200');
+  CREDS_HASH.pass = await hashSHA256(localStorage.getItem('saas_cred_p')||'218939');
 })();
 
 async function doLogin(){
@@ -14941,9 +14941,9 @@ async function doLogin(){
     const cred = await firebase.auth(_app).signInWithEmailAndPassword(u, p);
 
     // Sucesso: registra sessão e identifica o usuário logado
-    sessionStorage.setItem('fcrh_auth','1');
-    localStorage.setItem('fcrh_auth','1');
-    sessionStorage.setItem('fcrh_rh_user', cred.user?.email || u);
+    sessionStorage.setItem('saas_auth','1');
+    localStorage.setItem('saas_auth','1');
+    sessionStorage.setItem('saas_rh_user', cred.user?.email || u);
 
     document.getElementById('login-screen').style.display='none';
     document.getElementById('app').style.display='flex';
@@ -14981,9 +14981,9 @@ function togglePass(){
 }
 
 function logout(){
-  sessionStorage.removeItem('fcrh_auth');
-  localStorage.removeItem('fcrh_auth');
-  sessionStorage.removeItem('fcrh_rh_user');
+  sessionStorage.removeItem('saas_auth');
+  localStorage.removeItem('saas_auth');
+  sessionStorage.removeItem('saas_rh_user');
   // SEC-02 FIX: encerra sessão anônima do Firebase ao sair
   if(typeof firebase !== 'undefined'){
     try{
@@ -15013,7 +15013,7 @@ function logout(){
 // ── AUDIT-LOG: helpers para rastrear edições do RH no ponto biométrico ──
 // Retorna identificador do usuário RH logado (CPF digitado no login ou fallback)
 function _getRHUser(){
-  return sessionStorage.getItem('fcrh_rh_user')||'RH';
+  return sessionStorage.getItem('saas_rh_user')||'RH';
 }
 // Monta entrada de log imutável para adicionar ao auditLog[] do punch
 function _buildAuditEntry(valorAnterior, valorNovo, acao){
@@ -15305,12 +15305,12 @@ async function bioLoadData() {
     BIO_DATA.adjustments = aSnap.docs.map(d=>d.data()).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
     BIO_DATA.bioUsers    = uSnap.docs.map(d=>d.data());
     // Persiste bioUsers no localStorage como cache de segurança
-    try{ localStorage.setItem('fcrh_bio_users', JSON.stringify(BIO_DATA.bioUsers)); }catch(_){}
+    try{ localStorage.setItem('saas_bio_users', JSON.stringify(BIO_DATA.bioUsers)); }catch(_){}
     console.log('[bioLoadData] ✅ '+BIO_DATA.bioUsers.length+' colaboradores biométricos carregados');
   } catch(e){
     console.warn('[bioLoadData] Erro Firebase:', e.code || e.message);
     // FIX: nunca zera bioUsers — restaura do cache localStorage se disponível
-    const cached = localStorage.getItem('fcrh_bio_users');
+    const cached = localStorage.getItem('saas_bio_users');
     if(cached){
       try{
         const parsed = JSON.parse(cached);
@@ -20524,8 +20524,8 @@ async function initApp(){
       // o Supabase escrever por cima de APP[] já causou perda de holerites
       // (dado cifrado com senha antiga sobrescrevendo o que estava correto).
       // A gravação continua ativa, então a cópia segue sendo alimentada.
-      // Para religar a leitura: localStorage.setItem('fcrh_sb_read','1')
-      const _sbLerAtivo = (function(){ try{ return localStorage.getItem('fcrh_sb_read')==='1'; }catch(_){ return false; } })();
+      // Para religar a leitura: localStorage.setItem('saas_sb_read','1')
+      const _sbLerAtivo = (function(){ try{ return localStorage.getItem('saas_sb_read')==='1'; }catch(_){ return false; } })();
       if(_sbLerAtivo){
         try{ if(SB_READY) await sbLoadAll(); }catch(e){ console.warn('[sbLoadAll] erro:',e); }
       }
@@ -20621,7 +20621,7 @@ window.addEventListener('beforeunload', function(e){
   flushSavesPendentes();
   // Força salvamento de tudo no localStorage como backup de emergência
   const keys=['employees','candidates','pontos','financeiro','atestados','admissoes','demissoes','salarios','holRascunho','metaDiaria','faltaPagar','advertencias','ferias','avaliacoes','comunicados','bancohoras','contratos'];
-  keys.forEach(k=>{ try{localStorage.setItem('fcrh_'+k,JSON.stringify(APP[k]));}catch(err){} });
+  keys.forEach(k=>{ try{localStorage.setItem('saas_'+k,JSON.stringify(APP[k]));}catch(err){} });
   // Se há saves pendentes no Firebase ou Supabase, avisa o usuário
   const hasPending = Object.keys(FB_SAVE_QUEUE).length > 0 || Object.keys(SB_SAVE_QUEUE).length > 0;
   if(hasPending){
@@ -23440,7 +23440,7 @@ function exportarCSVFolhaDominio() {
     }
 
     // ══ MODO ADMIN / RH ═════════════════════════════════
-    var autenticado=sessionStorage.getItem('fcrh_auth')==='1'||localStorage.getItem('fcrh_auth')==='1';
+    var autenticado=sessionStorage.getItem('saas_auth')==='1'||localStorage.getItem('saas_auth')==='1';
     if(autenticado){
       hide('login-screen');
       show('app','flex');
@@ -33537,7 +33537,7 @@ async function salvarComprovante(){
     // Salvar no localStorage local — apenas como cache de emergência
     // BUG-06 CORRIGIDO: avisa o usuário se o localStorage estiver cheio
     try{
-      localStorage.setItem('fcrh_comprovantes', JSON.stringify(APP.comprovantes));
+      localStorage.setItem('saas_comprovantes', JSON.stringify(APP.comprovantes));
     }catch(e){
       if(e.name==='QuotaExceededError'||e.code===22){
         console.warn('[Comprovantes] localStorage cheio — comprovante salvo apenas no Firebase.');
@@ -33611,7 +33611,7 @@ function visualizarComprovante(id){
 async function excluirComprovante(id){
   if(!await confirmDialog('Excluir este comprovante? O colaborador não poderá mais visualizá-lo.')) return;
   APP.comprovantes = (APP.comprovantes||[]).filter(c=>c.id!==id);
-  try{ localStorage.setItem('fcrh_comprovantes', JSON.stringify(APP.comprovantes)); }catch(e){}
+  try{ localStorage.setItem('saas_comprovantes', JSON.stringify(APP.comprovantes)); }catch(e){}
   if(FBASE){
     try{ await FBASE.collection('comprovantes_pagamento').doc(id).delete(); }catch(e){}
   }
@@ -33621,7 +33621,7 @@ async function excluirComprovante(id){
 
 // Carrega comprovantes ao iniciar
 (function initComprovantes(){
-  const local = (() => { try{ const d=localStorage.getItem('fcrh_comprovantes'); return d?JSON.parse(d):null; }catch{return null;} })();
+  const local = (() => { try{ const d=localStorage.getItem('saas_comprovantes'); return d?JSON.parse(d):null; }catch{return null;} })();
   if(local) APP.comprovantes = local;
   else APP.comprovantes = [];
 
@@ -33633,7 +33633,7 @@ async function excluirComprovante(id){
       const cloud = snap.docs.map(d=>d.data());
       if(cloud.length>0){
         APP.comprovantes = cloud;
-        try{ localStorage.setItem('fcrh_comprovantes', JSON.stringify(APP.comprovantes)); }catch(e){}
+        try{ localStorage.setItem('saas_comprovantes', JSON.stringify(APP.comprovantes)); }catch(e){}
         if(MOD==='comprovantes') navigate('comprovantes');
       }
     }).catch(()=>{});
@@ -34422,12 +34422,12 @@ async function _autoSyncSilent(mes, ano){
 // ── 1. DARK MODE ─────────────────────────────────────────────────────
 function toggleDarkMode(){
   const isDark = document.body.classList.toggle('dark-mode');
-  localStorage.setItem('fcrh_dark_mode', isDark ? '1' : '0');
+  localStorage.setItem('saas_dark_mode', isDark ? '1' : '0');
   document.getElementById('dark-mode-btn').textContent = isDark ? '☀️' : '🌙';
   document.getElementById('dark-mode-btn').title = isDark ? 'Modo claro' : 'Modo escuro';
 }
 (function _initDarkMode(){
-  if(localStorage.getItem('fcrh_dark_mode') === '1'){
+  if(localStorage.getItem('saas_dark_mode') === '1'){
     document.body.classList.add('dark-mode');
     const btn = document.getElementById('dark-mode-btn');
     if(btn){ btn.textContent = '☀️'; btn.title = 'Modo claro'; }
@@ -34688,7 +34688,7 @@ if(!document.getElementById('_spin_style')){
 
 // ── 7. INDICADOR DE ATALHOS na barra lateral (dica única) ─────────────
 (function _showShortcutHint(){
-  if(localStorage.getItem('fcrh_shortcut_hint_seen')) return;
+  if(localStorage.getItem('saas_shortcut_hint_seen')) return;
   setTimeout(()=>{
     const foot = document.querySelector('.sb-foot');
     if(!foot) return;
@@ -34698,7 +34698,7 @@ if(!document.getElementById('_spin_style')){
     const closeBtn = document.createElement('button');
     closeBtn.textContent = '✕';
     closeBtn.style.cssText = 'float:right;background:none;border:none;cursor:pointer;font-size:11px;color:var(--mt);padding:0;margin-top:-2px';
-    closeBtn.onclick = ()=>{ hint.remove(); localStorage.setItem('fcrh_shortcut_hint_seen','1'); };
+    closeBtn.onclick = ()=>{ hint.remove(); localStorage.setItem('saas_shortcut_hint_seen','1'); };
     hint.prepend(closeBtn);
     foot.appendChild(hint);
   }, 3000);
@@ -34715,7 +34715,7 @@ if(!document.getElementById('_spin_style')){
 // Salva batidas localmente quando sem conexão e sincroniza ao voltar.
 // ════════════════════════════════════════════════════════════════════
 const BioOffline = (function(){
-  const DB_NAME='fcrh_bio_offline', STORE='queue', VERSION=1;
+  const DB_NAME='saas_bio_offline', STORE='queue', VERSION=1;
   let _db=null;
 
   async function _getDB(){
@@ -34981,7 +34981,7 @@ function _confirmarImportLote(){
 // ════════════════════════════════════════════════════════════════════
 function verHistoricoPonto(empId, ano, mes, dia){
   const k=`${empId}_${ano}_${mes}`;
-  const auditKey=`fcrh_ponto_audit_${k}_${dia}`;
+  const auditKey=`saas_ponto_audit_${k}_${dia}`;
   const hist=JSON.parse(localStorage.getItem(auditKey)||'[]');
   const emp=APP.employees.find(e=>e.id===empId);
   const dtFmt=`${String(dia).padStart(2,'0')}/${String(mes+1).padStart(2,'0')}/${ano}`;
@@ -35421,10 +35421,10 @@ async function excluirSolicitacaoBH(id) {
 // ════════════════════════════════════════════════════════════════════
 
 // Limites padrão por cargo (configurável)
-if(!window.BH_LIMITES_CARGO) window.BH_LIMITES_CARGO=JSON.parse(localStorage.getItem('fcrh_bh_limites')||'{}');
+if(!window.BH_LIMITES_CARGO) window.BH_LIMITES_CARGO=JSON.parse(localStorage.getItem('saas_bh_limites')||'{}');
 
 function salvarLimitesBHCargo(){
-  localStorage.setItem('fcrh_bh_limites',JSON.stringify(window.BH_LIMITES_CARGO));
+  localStorage.setItem('saas_bh_limites',JSON.stringify(window.BH_LIMITES_CARGO));
 }
 
 function abrirConfigLimitesBH(){
@@ -36916,10 +36916,10 @@ console.log('[v11] Painel Tempo Real · Múltiplos Descritores · Acurácia · E
 
 // Threshold configurável (salvo em localStorage)
 function _alertaGetCfg() {
-  try { return JSON.parse(localStorage.getItem('fcrh_alerta_cfg') || '{}'); } catch(e) { return {}; }
+  try { return JSON.parse(localStorage.getItem('saas_alerta_cfg') || '{}'); } catch(e) { return {}; }
 }
 function _alertaSaveCfg(cfg) {
-  localStorage.setItem('fcrh_alerta_cfg', JSON.stringify(cfg));
+  localStorage.setItem('saas_alerta_cfg', JSON.stringify(cfg));
 }
 
 function abrirAlertaCfg() {
@@ -46486,7 +46486,7 @@ async function _logAuditoria(acao, entidade, entidadeId, empId, dadosAntigos, da
   if (!FBASE) return;
   try {
     const rhUser = (typeof _rhU !== 'undefined' ? _rhU : null)
-      || localStorage.getItem('fcrh_rh_user') || 'RH';
+      || localStorage.getItem('saas_rh_user') || 'RH';
     const entry = {
       ts:         new Date().toISOString(),
       acao:       acao       || 'edit',
@@ -47696,7 +47696,7 @@ window.aiaGerarResumo=aiaGerarResumo;
 // ════════════════════════════════════════════════════════════════════
 const AUDIT_LS_KEY = 'atlas_audit_log';
 function _auditUser(){
-  try{ return (typeof _getRHUser==='function') ? _getRHUser() : (sessionStorage.getItem('fcrh_rh_user')||'RH'); }
+  try{ return (typeof _getRHUser==='function') ? _getRHUser() : (sessionStorage.getItem('saas_rh_user')||'RH'); }
   catch(e){ return 'RH'; }
 }
 function auditLog(acao, detalhe, modulo){
@@ -48799,7 +48799,7 @@ async function salvarFeriadosMunicipais(){
       });
     }
   }catch(e){ console.warn('[Feriados] erro ao salvar municipais:', e.message); }
-  try{ localStorage.setItem('fcrh_feriados_municipais', JSON.stringify(APP_FERIADOS_MUNICIPAIS)); }catch(_){}
+  try{ localStorage.setItem('saas_feriados_municipais', JSON.stringify(APP_FERIADOS_MUNICIPAIS)); }catch(_){}
 }
 
 // Normaliza nome de cidade para comparacao (sem acento, minusculo)
