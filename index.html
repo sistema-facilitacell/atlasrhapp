@@ -3241,18 +3241,11 @@ const NAV_GROUPS = [
     {id:'contratos',label:'Contratos & Docs',icon:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>'},
   ]},
   { label: 'Conformidade & Risco', items: [
-    {id:'fechamento',label:'Fechamento Mensal',icon:'<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>'},
     {id:'backup',label:'Backup & Restauração',icon:'<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>'},
     {id:'bh_testes',label:'Autoteste Banco de Horas',icon:'<path d="M9 2v6l-5 9a2 2 0 0 0 1.75 3h12.5A2 2 0 0 0 20 17l-5-9V2"/><line x1="8" y1="2" x2="16" y2="2"/>'},
   ]},
-  { label: 'Automação', items: [
-    {id:'assinatura_digital',label:'Assinatura Digital',icon:'<path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>'},
-    {id:'alarmes_portal',label:'Alarmes do Portal',icon:'<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/><line x1="12" y1="2" x2="12" y2="4"/>'},
-  ]},
   { label: 'Ferramentas', items: [
     {id:'consultor_clt',label:'Consultor CLT (IA)',icon:'<path d="M12 3v18"/><path d="M5 7h14"/><path d="M5 7l-3 7a4 4 0 0 0 6 0z"/><path d="M19 7l3 7a4 4 0 0 1-6 0z"/><path d="M8 21h8"/>'},
-    {id:'agenda_rh',label:'Agenda de RH',icon:'<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>'},
-    {id:'doc_templates',label:'Templates de Documentos',icon:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>'},
     {id:'auditoria',label:'Logs de Auditoria',icon:'<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>'},
   ]},
 ];
@@ -14917,17 +14910,32 @@ async function doLogin(){
 
   try{
     // ── LOGIN VIA FIREBASE AUTHENTICATION (e-mail/senha) ──
+    // Espera o SDK do Firebase carregar (scripts têm 'defer', podem não estar prontos)
+    let _tentativas = 0;
+    while((typeof firebase==='undefined' || typeof firebase.auth!=='function') && _tentativas < 40){
+      await new Promise(r=>setTimeout(r,100));
+      _tentativas++;
+    }
     if(typeof firebase==='undefined' || typeof firebase.auth!=='function'){
-      throw new Error('Firebase Auth indisponível. Verifique a conexão.');
+      throw new Error('Firebase ainda carregando. Aguarde 2 segundos e tente de novo.');
+    }
+    // Config do Firebase — usa FB_CONFIG se já existir; senão, usa a config fixa
+    // (doLogin está no código ANTES da declaração de FB_CONFIG, então garantimos aqui)
+    const _cfg = (typeof FB_CONFIG !== 'undefined' && FB_CONFIG && FB_CONFIG.apiKey) ? Object.assign({}, FB_CONFIG) : {
+      apiKey:            'AIzaSyCBOp8IrmkQbDkdC2fH81JeLlJjlzM_oA8',
+      projectId:         'atlassaas',
+      storageBucket:     'atlassaas.firebasestorage.app',
+      messagingSenderId: '900350981704',
+      appId:             '1:900350981704:web:5b926fda7cb3a6d5228a7d'
+    };
+    if(window.location.protocol !== 'file:' && !_cfg.authDomain){
+      _cfg.authDomain = (_cfg.projectId||'atlassaas') + '.firebaseapp.com';
     }
     // Garante que o Firebase esteja inicializado ANTES de autenticar.
-    // (o initApp() completo só roda após o login, então criamos o app aqui)
-    let _app = (firebase.apps && firebase.apps.length) ? firebase.apps[0] : null;
+    let _app = (firebase.apps && firebase.apps.length)
+      ? (firebase.apps.find(a=>a.name==='[DEFAULT]') || firebase.apps[0])
+      : null;
     if(!_app){
-      const _cfg = Object.assign({}, FB_CONFIG);
-      if(window.location.protocol !== 'file:' && !_cfg.authDomain){
-        _cfg.authDomain = (FB_CONFIG.projectId||'') + '.firebaseapp.com';
-      }
       _app = firebase.initializeApp(_cfg);
     }
     const cred = await firebase.auth(_app).signInWithEmailAndPassword(u, p);
