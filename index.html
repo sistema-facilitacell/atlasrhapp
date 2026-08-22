@@ -2828,8 +2828,8 @@ async function showFbStatus(){
         titulo:'Regras do Firestore bloqueando acesso',
         descricao:'As regras de segurança exigem <strong>autenticação</strong>, mas o provedor Anônimo não está ativo. Escolha uma das soluções abaixo:',
         passos:[
-          '<strong>Solução 1 — Recomendada (segura):</strong> Acesse <a href="https://console.firebase.google.com/project/rh-facilitacell/authentication/providers" target="_blank" style="color:#7C3AED;font-weight:700">Authentication → Sign-in method</a>, ative o provedor <strong>Anônimo</strong> e salve. O Atlas RH faz login automático — sem precisar alterar as regras.',
-          '<strong>Solução 2 — Simples (regras abertas):</strong> Acesse <a href="https://console.firebase.google.com/project/rh-facilitacell/firestore/rules" target="_blank" style="color:#2563EB;font-weight:700">Firestore → Rules</a>, substitua pelo código abaixo e clique em <strong>Publicar</strong>.',
+          '<strong>Solução 1 — Recomendada (segura):</strong> Acesse <a href="https://console.firebase.google.com/project/atlassaas/authentication/providers" target="_blank" style="color:#7C3AED;font-weight:700">Authentication → Sign-in method</a>, ative o provedor <strong>Anônimo</strong> e salve. O Atlas RH faz login automático — sem precisar alterar as regras.',
+          '<strong>Solução 2 — Simples (regras abertas):</strong> Acesse <a href="https://console.firebase.google.com/project/atlassaas/firestore/rules" target="_blank" style="color:#2563EB;font-weight:700">Firestore → Rules</a>, substitua pelo código abaixo e clique em <strong>Publicar</strong>.',
           'Após qualquer uma das soluções, recarregue a página (F5).'
         ],
         extra: '<div style="margin-top:6px"><div style="font-size:11px;color:#92400E;font-weight:700;margin-bottom:4px">Regras abertas (Solução 2):</div><pre style="background:#1E293B;color:#E2E8F0;padding:10px;border-radius:8px;font-size:11px;overflow-x:auto;margin:0">rules_version = &quot;2&quot;;\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    match /{document=**} {\n      allow read, write: if true;\n    }\n  }\n}</pre><div style="font-size:11px;color:#92400E;margin-top:4px">⚠ Regras abertas funcionam mas qualquer pessoa com o ID do projeto pode acessar os dados. Prefira a Solção 1.</div></div>'
@@ -2841,7 +2841,7 @@ async function showFbStatus(){
         titulo:'Autenticação anônima não habilitada',
         descricao:'As regras do Firestore exigem login. O Atlas RH usa <strong>autenticação anônima automática</strong> — basta ativá-la no console.',
         passos:[
-          'Acesse o <a href="https://console.firebase.google.com/project/rh-facilitacell/authentication/providers" target="_blank" style="color:#2563EB;font-weight:700">Firebase Console → Authentication → Sign-in method</a>.',
+          'Acesse o <a href="https://console.firebase.google.com/project/atlassaas/authentication/providers" target="_blank" style="color:#2563EB;font-weight:700">Firebase Console → Authentication → Sign-in method</a>.',
           'Localize <strong>Anônimo</strong> na lista de provedores e clique para <strong>ativar</strong>.',
           'Salve e recarregue a página do Atlas RH (F5) — o sistema vai se autenticar automaticamente.'
         ]
@@ -14920,7 +14920,16 @@ async function doLogin(){
     if(typeof firebase==='undefined' || typeof firebase.auth!=='function'){
       throw new Error('Firebase Auth indisponível. Verifique a conexão.');
     }
-    const _app = firebase.apps?.[0];
+    // Garante que o Firebase esteja inicializado ANTES de autenticar.
+    // (o initApp() completo só roda após o login, então criamos o app aqui)
+    let _app = (firebase.apps && firebase.apps.length) ? firebase.apps[0] : null;
+    if(!_app){
+      const _cfg = Object.assign({}, FB_CONFIG);
+      if(window.location.protocol !== 'file:' && !_cfg.authDomain){
+        _cfg.authDomain = (FB_CONFIG.projectId||'') + '.firebaseapp.com';
+      }
+      _app = firebase.initializeApp(_cfg);
+    }
     const cred = await firebase.auth(_app).signInWithEmailAndPassword(u, p);
 
     // Sucesso: registra sessão e identifica o usuário logado
@@ -19232,7 +19241,7 @@ td,th{font-size:15px!important;}
     <div class="setup-step">
       <div class="step-num">1</div>
       <div class="step-body"><strong>Abra o Firebase Console</strong>
-        <p>Acesse <a href="https://console.firebase.google.com" target="_blank" style="color:#e65100;font-weight:600">console.firebase.google.com</a> → projeto <code>rh-facilitacell</code></p>
+        <p>Acesse <a href="https://console.firebase.google.com" target="_blank" style="color:#e65100;font-weight:600">console.firebase.google.com</a> → projeto <code>atlassaas</code></p>
       </div>
     </div>
     <div class="setup-step">
@@ -19262,7 +19271,7 @@ td,th{font-size:15px!important;}
     <input type="hidden" id="binIdInput" />
     <div id="reconectMsg" style="display:none;margin-top:8px;padding:9px 12px;border-radius:7px;font-size:12px;line-height:1.6"></div>
     <div class="err-box" id="setupErr" style="margin-top:10px">Erro de conexão. Verifique as regras e tente novamente.</div>
-    <a href="https://console.firebase.google.com/project/rh-facilitacell/firestore/rules" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:11px;background:#e65100;border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;text-decoration:none;margin-top:12px;font-family:inherit">🔗 Abrir Firestore Rules direto</a>
+    <a href="https://console.firebase.google.com/project/atlassaas/firestore/rules" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:11px;background:#e65100;border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;text-decoration:none;margin-top:12px;font-family:inherit">🔗 Abrir Firestore Rules direto</a>
     <button class="btn btn-outline" onclick="closeSetup()" style="width:100%;margin-top:10px;justify-content:center;padding:11px;font-size:14px;font-weight:600;border-radius:9px">Usar dados locais (sem nuvem)</button>
     <p style="font-size:11px;color:#aab;text-align:center;margin-top:10px">Dados locais ficam apenas neste dispositivo.</p>
   </div>
@@ -20064,7 +20073,7 @@ td,th{font-size:15px!important;}
 <script>
 // ════════════════════════════════════════════════════
 // FIREBASE — CONFIG (v8 — Firestore only)
-// Banco único: Firestore (rh-facilitacell) — todos os dados do sistema
+// Banco único: Firestore (atlassaas) — todos os dados do sistema
 // Realtime Database removido — tudo unificado no Firestore
 // ════════════════════════════════════════════════════
 var FB_CONFIG = {
@@ -20152,7 +20161,8 @@ async function connectFirebase(){
     if(!app) app = firebase.initializeApp(FB_CONFIG);
     if(!FBASE) FBASE = firebase.firestore(app);
 
-    // AUTH ANÔNIMO — obrigatório para regras do Firestore (bio, chat, hr)
+    // AUTH — regras do Firestore exigem usuário autenticado.
+    // Se já houver login por e-mail/senha (RH), mantém. Só usa anônimo como reserva.
     try {
       const _auth = firebase.auth(app);
       if (!_auth.currentUser) {
