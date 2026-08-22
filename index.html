@@ -2532,6 +2532,17 @@ function save(k){
 
 // Init: load from localStorage first (UI rápida enquanto Firebase carrega)
 function loadLocal(){
+  // ── LIMPEZA SAAS: remove dados de sistemas antigos (prefixo fcrh_) ──
+  // Esta cópia usa o prefixo saas_. Se houver dados fcrh_ de outra versão
+  // no mesmo navegador/domínio, eles são apagados uma única vez para não
+  // "vazarem" para a cópia do cliente.
+  try{
+    if(!localStorage.getItem('saas_migrado_v1')){
+      Object.keys(localStorage).filter(k=>k.indexOf('fcrh_')===0).forEach(k=>localStorage.removeItem(k));
+      localStorage.setItem('saas_migrado_v1','1');
+      console.log('[SaaS] Dados antigos (fcrh_) removidos deste navegador.');
+    }
+  }catch(_){}
   // FIX-P1: inclui chaves anteriormente ausentes — lancamentos_bh, bhSolicitacoes, wf_*
   const keys=[..._VALID_KEYS];
   keys.forEach(k=>{
@@ -36024,6 +36035,8 @@ function rPainelTempoReal() {
 
 // Injeta "Painel Tempo Real" na navegação de forma dinâmica
 (function(){
+  // DESATIVADO na versão SaaS — item removido do menu do cliente.
+  if(true) return;
   // Adiciona na seção Equipe da nav
   const eqGrp = NAV_GROUPS.find(g => g.label === 'Equipe');
   if(eqGrp && !eqGrp.items.find(i => i.id === 'temporeal')) {
@@ -43299,7 +43312,7 @@ function exportarESocial(mes, ano) {
   // ── Adiciona ao NAV e PAGE_TITLES ─────────────────────────────────────
   if (typeof NAV_GROUPS !== 'undefined') {
     const grpEquipe = NAV_GROUPS.find(g => g.label === 'Equipe');
-    if (grpEquipe && !grpEquipe.items.find(i => i.id === 'aprovacao_he')) {
+    if (false /* SaaS: item removido */) {
       grpEquipe.items.push({
         id: 'aprovacao_he',
         label: 'Aprovação de HE',
@@ -43500,7 +43513,7 @@ function exportarESocial(mes, ano) {
 
   if (typeof NAV_GROUPS !== 'undefined') {
     const grpFin = NAV_GROUPS.find(g => g.label === 'Financeiro');
-    if (grpFin && !grpFin.items.find(i => i.id === 'saude_folha')) {
+    if (false /* SaaS: item removido */) {
       grpFin.items.push({
         id: 'saude_folha',
         label: 'Saúde da Folha',
@@ -43658,7 +43671,7 @@ function exportarESocial(mes, ano) {
 
   if (typeof NAV_GROUPS !== 'undefined') {
     const grpAuto = NAV_GROUPS.find(g => g.label === 'Automação');
-    if (grpAuto && !grpAuto.items.find(i => i.id === 'centro_alertas')) {
+    if (false /* SaaS: item removido */) {
       grpAuto.items.unshift({
         id: 'centro_alertas',
         label: 'Centro de Alertas',
@@ -43878,7 +43891,7 @@ function exportarESocial(mes, ano) {
 
   if (typeof NAV_GROUPS !== 'undefined') {
     const grpEquipe = NAV_GROUPS.find(g => g.label === 'Equipe');
-    if (grpEquipe && !grpEquipe.items.find(i => i.id === 'enquetes')) {
+    if (false /* SaaS: item removido */) {
       grpEquipe.items.push({
         id: 'enquetes',
         label: 'Pesquisas de Clima',
@@ -44068,7 +44081,7 @@ function exportarESocial(mes, ano) {
 
   if (typeof NAV_GROUPS !== 'undefined') {
     const grpEquipe = NAV_GROUPS.find(g => g.label === 'Equipe');
-    if (grpEquipe && !grpEquipe.items.find(i => i.id === 'importacao_ponto')) {
+    if (false /* SaaS: item removido */) {
       grpEquipe.items.push({
         id: 'importacao_ponto',
         label: 'Importar Ponto',
@@ -53296,10 +53309,10 @@ window.rAtlasPainelRH = function(){
         const itemRPA = {id:'rpas', label:'RPA Autônomos',
           icon:'<path d="M14 2H6a2 2 0 0 0-2 2v16l4-2 4 2 4-2 4 2V8z"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="13" y2="14"/>'};
         const grp = NAV_GROUPS.find(g=>g && (g.items||[]).some(n=>n && n.id==='demissao'));
-        if(grp){
+        if(false){ /* SaaS: itens removidos do menu do cliente */
           const i = grp.items.findIndex(n=>n && n.id==='demissao');
           grp.items.splice(i+1, 0, item, itemTL, itemRPA, itemCONF);
-        } else if(NAV_GROUPS[0] && NAV_GROUPS[0].items){
+        } else if(false){
           NAV_GROUPS[0].items.push(item);
         }
         // NAV é derivado de NAV_GROUPS no carregamento; mantém os dois em sincronia
