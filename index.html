@@ -3625,7 +3625,7 @@ function toast(msg,type='ok',dur=3200){
 // ── URL do Portal do Colaborador — BUG-18 FIX ──
 // Altere PORTAL_URL_DEFAULT para mudar o host sem editar o código.
 // Se FBASE estiver disponível, pode ser sobrescrita via Firebase key 'config/portal_url'.
-const PORTAL_URL_DEFAULT = 'https://atlasrh.com.br/portal_v2_pwa.html';
+const PORTAL_URL_DEFAULT = 'https://sistema-facilitacell.github.io/atlasrhapp/portal.html';
 // URL base da página de assinatura direta (assinatura_adv.html)
 // O colaborador acessa SEM precisar de login — só o token na URL é necessário.
 // Para holerite, o token vai para hol_sign_tokens; para advertência, adv_sign_tokens.
@@ -3638,8 +3638,14 @@ function _loadPortalUrlFromFirebase(){
   if(!FBASE) return;
   FBASE.collection('config').doc('portal_url').get().then(function(snap){
     if(snap.exists && snap.data().url){
-      PORTAL_URL = snap.data().url;
-      console.log('[Portal URL] Atualizada via Firebase:', PORTAL_URL);
+      var _u = snap.data().url;
+      // Ignora links antigos que apontam para o portal de outro sistema
+      if(/atlasrh\.com\.br|portal_v2_pwa|sistema-atlasrh/.test(_u)){
+        console.log('[Portal URL] Link antigo ignorado:', _u, '— usando', PORTAL_URL_DEFAULT);
+      } else {
+        PORTAL_URL = _u;
+        console.log('[Portal URL] Atualizada via Firebase:', PORTAL_URL);
+      }
     }
   }).catch(function(){});
 }
@@ -28129,7 +28135,7 @@ td,th{font-size:15px!important;}
 
   // ── OBSERVABILIDADE: log de tentativas reprovadas (fluxo de ponto local deste arquivo) ─
   // NOTA: o fluxo de ponto que os colaboradores realmente usam no dia a dia é
-  // o portal_v2_pwa.html (Biometria v3, Groq Vision + face-api), que loga em
+  // o portal.html (Biometria v3, Groq Vision + face-api), que loga em
   // 'bio_falhas' via _logFalhaPonto() — é essa coleção que a aba "🚨 Falhas
   // Ponto" deste admin lê. Este bloco aqui cobre o fluxo de câmera embutido
   // neste MESMO arquivo (ativado via ?portal na URL) caso ele seja usado como
@@ -33073,7 +33079,7 @@ function confirmarGerarContrato(){
   var nomeCurto = d.f_nome.split(' ')[0];
   // BUG-15 FIX: usa PORTAL_URL em vez de URL hardcoded — antes estava diferente
   // de PORTAL_URL_DEFAULT e podia apontar para lugar errado em produção.
-  var portalUrl = (typeof PORTAL_URL !== 'undefined' ? PORTAL_URL : 'https://sistema-atlasrh.github.io/portal/portal_v2_pwa.html');
+  var portalUrl = (typeof PORTAL_URL !== 'undefined' ? PORTAL_URL : './portal.html');
 
   // Gera HTML dos documentos ANTES de fechar modal
   var docsHtml = docs.map(function(docId){
@@ -33167,7 +33173,7 @@ async function enviarAoPortalColaborador(){
   var phone = emp ? (emp.telefone||'').replace(/\D/g,'') : '';
   var nomeCurto = d.f_nome.split(' ')[0];
   // BUG-15 FIX: usa PORTAL_URL em vez de URL hardcoded (segunda ocorrência)
-  var portalUrl = (typeof PORTAL_URL !== 'undefined' ? PORTAL_URL : 'https://sistema-atlasrh.github.io/portal/portal_v2_pwa.html');
+  var portalUrl = (typeof PORTAL_URL !== 'undefined' ? PORTAL_URL : './portal.html');
 
   // Overlay de confirmação
   var overlay = document.createElement('div');
@@ -43003,7 +43009,7 @@ function exportarESocial(mes, ano) {
 // ════════════════════════════════════════════════════════════════════════
 // MODULE 2 — APROVAÇÃO DE HORAS EXTRAS (WORKFLOW GESTOR)
 // Coleção Firestore: portal_he_solicitacoes — mesma coleção onde o Portal
-// do Colaborador (_enviarHE, em portal_v2_pwa.html) grava os pedidos.
+// do Colaborador (_enviarHE, em portal.html) grava os pedidos.
 // FIX: antes este módulo só lia de APP.horasExtras (memória local, nunca
 // preenchida por ninguém) — por isso a tela sempre mostrava zero. Agora lê
 // e grava direto na nuvem, igual ao padrão já usado em bh_solicitacoes.
@@ -55358,7 +55364,7 @@ console.log('[Atlas] Módulo Regimento + Modelo de Contrato carregado ✅');
 // ════════════════════════════════════════════════════════════════════
 // [OBSERVABILIDADE] Painel de Falhas de Reconhecimento — aba "🚨 Falhas Ponto"
 // Lê a coleção bio_falhas — gravada pelo portal.com.br do colaborador
-// (_logFalhaPonto, dentro de abrirBioPonto() no portal_v2_pwa.html) — e
+// (_logFalhaPonto, dentro de abrirBioPonto() no portal.html) — e
 // mostra agregado por motivo + dispositivo/navegador + versão do app, pra
 // dar visibilidade cross-device de tentativas de ponto reprovadas. Antes
 // disso os erros não ficavam visíveis em lugar nenhum pro RH.
