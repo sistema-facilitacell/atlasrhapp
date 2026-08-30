@@ -1306,6 +1306,31 @@ async function boot() {
   // Verifica horário de acesso logo no boot
   const acesso = await verificarHorarioAcesso();
 
+  // ── VERIFICAÇÃO DE LICENÇA no boot (bloqueio pelo Painel do Dono) ──
+  // Roda mesmo com sessão salva (ex: colaborador recarregou a página).
+  try {
+    if (!DB) { await initFirebase(); }
+    if (DB) {
+      const _lic = await DB.collection('config').doc('licenca').get();
+      if (_lic.exists) {
+        const _d = _lic.data();
+        let _bloq = (_d.ativo === false);
+        if(!_bloq && _d.proxVenc){
+          const _v = new Date(_d.proxVenc+'T00:00:00');
+          const _h = new Date(); _h.setHours(0,0,0,0);
+          if(Math.round((_h - _v)/86400000) > 5){ _bloq = true; _d.mensagem = _d.mensagem || 'Acesso suspenso por pagamento em atraso. Fale com o RH da sua empresa.'; }
+        }
+        if (_bloq) {
+          sessionStorage.removeItem('p_emp'); sessionStorage.removeItem('p_emp_at');
+          EMP = null;
+          if (splash) { splash.className = 'hidden'; }
+          if (typeof _mostrarBloqueioLicencaPortal === 'function') _mostrarBloqueioLicencaPortal(_d);
+          return;
+        }
+      }
+    }
+  } catch(_le) { /* fail-open */ }
+
   // Verifica sessão salva (TTL 8h)
   const saved = sessionStorage.getItem('p_emp');
   const savedAt = sessionStorage.getItem('p_emp_at');
@@ -1547,6 +1572,31 @@ function _mostrarBloqueioLicencaPortal(dados){
 }
 function _escLicP(s){ return String(s||'').replace(/[&<>"']/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];}); }
 
+// Monitor periódico do portal: checa a licença a cada 3 min e tranca na hora.
+var _monitorLicPortalTimer = null;
+function _iniciarMonitorLicencaPortal(){
+  if(_monitorLicPortalTimer) return;
+  _monitorLicPortalTimer = setInterval(async function(){
+    try{
+      if(!DB) return;
+      var lic = await DB.collection('config').doc('licenca').get();
+      if(!lic.exists) return;
+      var d = lic.data();
+      var bloq = (d.ativo === false);
+      if(!bloq && d.proxVenc){
+        var v = new Date(d.proxVenc+'T00:00:00');
+        var h = new Date(); h.setHours(0,0,0,0);
+        if(Math.round((h - v)/86400000) > 5){ bloq = true; d.mensagem = d.mensagem || 'Acesso suspenso por pagamento em atraso. Fale com o RH da sua empresa.'; }
+      }
+      if(bloq){
+        clearInterval(_monitorLicPortalTimer); _monitorLicPortalTimer=null;
+        sessionStorage.removeItem('p_emp'); sessionStorage.removeItem('p_emp_at');
+        _mostrarBloqueioLicencaPortal(d);
+      }
+    }catch(_){}
+  }, 3 * 60 * 1000);
+}
+
 async function doLogin() {
   const cpfEl = document.getElementById('inp-cpf');
   const passEl = document.getElementById('inp-pass');
@@ -1699,6 +1749,7 @@ function afterLogin() {
   document.getElementById('login-screen').style.display = 'none';
   const appEl = document.getElementById('app');
   appEl.style.display = 'flex';
+  _iniciarMonitorLicencaPortal(); // verifica a licença periodicamente enquanto aberto
   // NÃO forçar flexDirection via inline style — o CSS @media cuida disso no mobile
   // appEl.style.flexDirection = 'row'; ← REMOVIDO: sobrescrevia o @media (max-width:768px)
   appEl.style.minHeight = '100vh';
