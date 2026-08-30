@@ -1526,6 +1526,27 @@ function mostrarTelaDesligamento(emp) {
 }
 
 // ── Login ────────────────────────────────────────────────────
+/* Tela de bloqueio do portal quando a licença está inativa */
+function _mostrarBloqueioLicencaPortal(dados){
+  dados = dados || {};
+  var msg = dados.mensagem || 'O acesso ao portal está temporariamente suspenso. Fale com o RH da sua empresa.';
+  var ls = document.getElementById('login-screen'); if(ls) ls.style.display='none';
+  var old = document.getElementById('__lic_block_portal__'); if(old) old.remove();
+  var div = document.createElement('div');
+  div.id='__lic_block_portal__';
+  div.style.cssText='position:fixed;inset:0;z-index:99999;background:linear-gradient(150deg,#0a1628,#0d1f40 55%,#091529);display:flex;align-items:center;justify-content:center;padding:20px;font-family:Barlow,system-ui,sans-serif';
+  div.innerHTML =
+    '<div style="background:rgba(8,20,50,.75);backdrop-filter:blur(12px);border:1px solid rgba(220,38,38,.35);border-radius:22px;padding:44px 38px;max-width:420px;width:100%;text-align:center;box-shadow:0 24px 70px rgba(0,0,0,.55)">'
+    + '<div style="width:72px;height:72px;border-radius:50%;background:rgba(220,38,38,.15);border:2px solid rgba(220,38,38,.4);display:flex;align-items:center;justify-content:center;margin:0 auto 22px;font-size:32px">🔒</div>'
+    + '<div style="font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:rgba(248,113,113,.85);margin-bottom:8px">Portal Indisponível</div>'
+    + '<div style="font-size:20px;font-weight:800;color:#e8f0ff;margin-bottom:14px">Acesso suspenso</div>'
+    + '<div style="font-size:14px;color:rgba(200,222,255,.7);line-height:1.6;margin-bottom:26px">'+_escLicP(msg)+'</div>'
+    + '<button onclick="location.reload()" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;padding:12px 26px;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer">Tentar novamente</button>'
+    + '</div>';
+  document.body.appendChild(div);
+}
+function _escLicP(s){ return String(s||'').replace(/[&<>"']/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];}); }
+
 async function doLogin() {
   const cpfEl = document.getElementById('inp-cpf');
   const passEl = document.getElementById('inp-pass');
@@ -1538,8 +1559,32 @@ async function doLogin() {
   if (!cpf || !pass) { showErr('Preencha CPF e senha.'); return; }
   if (btn.disabled) return;
 
-  // Verifica horário de acesso antes de qualquer outra coisa
+  // ── VERIFICAÇÃO DE LICENÇA (bloqueio pelo Painel do Dono) ──
+  // Se o sistema do cliente foi bloqueado (ou venceu há mais de 5 dias), o portal também tranca.
   btn.disabled = true; btn.textContent = 'Verificando...';
+  try {
+    if (!DB) { await initFirebase(); }
+    if (DB) {
+      const _lic = await DB.collection('config').doc('licenca').get();
+      if (_lic.exists) {
+        const _d = _lic.data();
+        let _bloqueado = (_d.ativo === false);
+        if(!_bloqueado && _d.proxVenc){
+          const _venc = new Date(_d.proxVenc+'T00:00:00');
+          const _hoje = new Date(); _hoje.setHours(0,0,0,0);
+          const _diasAtraso = Math.round((_hoje - _venc)/86400000);
+          if(_diasAtraso > 5){ _bloqueado = true; _d.mensagem = _d.mensagem || 'Acesso suspenso por pagamento em atraso. Fale com o RH da sua empresa.'; }
+        }
+        if (_bloqueado) {
+          btn.disabled = false; btn.textContent = 'Entrar →';
+          _mostrarBloqueioLicencaPortal(_d);
+          return;
+        }
+      }
+    }
+  } catch(_le) { /* fail-open: se não ler, não trava por rede */ }
+
+  // Verifica horário de acesso antes de qualquer outra coisa
   const acesso = await verificarHorarioAcesso();
   if (acesso.bloqueado) {
     btn.disabled = false; btn.textContent = 'Entrar →';
@@ -11231,3 +11276,6 @@ async function _responderClima(enqId) {
   } catch(e) { toast('Erro ao enviar: ' + e.message, 'err'); }
 }
 </script>
+
+</body>
+</html>
