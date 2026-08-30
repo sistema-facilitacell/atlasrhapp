@@ -14957,6 +14957,35 @@ async function doLogin(){
     }
     const cred = await firebase.auth(_app).signInWithEmailAndPassword(u, p);
 
+    // ── VERIFICAÇÃO DE LICENÇA (bloqueio pelo Painel do Dono) ──
+    // Lê config/licenca no Firebase. Se ativo===false, tranca o acesso.
+    // Também bloqueia AUTOMATICAMENTE se passar 5 dias do vencimento (proxVenc).
+    try{
+      const _lic = await firebase.firestore(_app).collection('config').doc('licenca').get();
+      if(_lic.exists){
+        const _d = _lic.data();
+        let _bloqueado = (_d.ativo === false);
+        // bloqueio automático por data de vencimento
+        if(!_bloqueado && _d.proxVenc){
+          const _venc = new Date(_d.proxVenc+'T00:00:00');
+          const _hoje = new Date(); _hoje.setHours(0,0,0,0);
+          const _diasAtraso = Math.round((_hoje - _venc)/86400000);
+          if(_diasAtraso > 5){
+            _bloqueado = true;
+            _d.motivo = _d.motivo || 'Pagamento pendente';
+            _d.mensagem = _d.mensagem || 'Seu acesso está suspenso por pagamento em atraso. Entre em contato para regularizar.';
+          }
+        }
+        if(_bloqueado){
+          try{ await firebase.auth(_app).signOut(); }catch(_){}
+          sessionStorage.removeItem('saas_auth'); localStorage.removeItem('saas_auth');
+          _mostrarBloqueioLicenca(_d);
+          if(btn){ btn.disabled=false; btn.textContent=btn.dataset._t||'Entrar no Sistema'; }
+          return;
+        }
+      }
+    }catch(_licErr){ /* se não conseguir ler, libera (fail-open) para não travar por rede */ }
+
     // Sucesso: registra sessão e identifica o usuário logado
     sessionStorage.setItem('saas_auth','1');
     localStorage.setItem('saas_auth','1');
@@ -14984,6 +15013,30 @@ async function doLogin(){
     if(btn){ btn.disabled=false; btn.textContent=btn.dataset._t||'Entrar no Sistema'; }
   }
 }
+
+/* Tela de bloqueio quando a licença está inativa (bloqueado pelo Painel do Dono) */
+function _mostrarBloqueioLicenca(dados){
+  dados = dados || {};
+  var motivo = dados.motivo || 'Acesso suspenso';
+  var msg = dados.mensagem || 'Seu acesso está temporariamente suspenso. Entre em contato para regularizar.';
+  var wrap = document.getElementById('login-screen');
+  if(wrap) wrap.style.display='none';
+  var app = document.getElementById('app'); if(app) app.style.display='none';
+  var old = document.getElementById('__lic_block__'); if(old) old.remove();
+  var div = document.createElement('div');
+  div.id='__lic_block__';
+  div.style.cssText='position:fixed;inset:0;z-index:99999;background:linear-gradient(150deg,#0a1628,#0d1f40 55%,#091529);display:flex;align-items:center;justify-content:center;padding:20px;font-family:system-ui,-apple-system,Segoe UI,sans-serif';
+  div.innerHTML =
+    '<div style="background:rgba(8,20,50,.75);backdrop-filter:blur(12px);border:1px solid rgba(220,38,38,.35);border-radius:22px;padding:44px 38px;max-width:440px;width:100%;text-align:center;box-shadow:0 24px 70px rgba(0,0,0,.55)">'
+    + '<div style="width:74px;height:74px;border-radius:50%;background:rgba(220,38,38,.15);border:2px solid rgba(220,38,38,.4);display:flex;align-items:center;justify-content:center;margin:0 auto 22px;font-size:34px">🔒</div>'
+    + '<div style="font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:rgba(248,113,113,.85);margin-bottom:8px">Acesso Bloqueado</div>'
+    + '<div style="font-size:22px;font-weight:800;color:#e8f0ff;margin-bottom:14px">'+_escLic(motivo)+'</div>'
+    + '<div style="font-size:14.5px;color:rgba(200,222,255,.7);line-height:1.6;margin-bottom:26px">'+_escLic(msg)+'</div>'
+    + '<button onclick="location.reload()" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;padding:12px 26px;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer">Tentar novamente</button>'
+    + '</div>';
+  document.body.appendChild(div);
+}
+function _escLic(s){ return String(s||'').replace(/[&<>"']/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];}); }
 
 function togglePass(){
   const inp=document.getElementById('login-pass');
