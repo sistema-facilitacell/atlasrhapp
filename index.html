@@ -14907,7 +14907,7 @@ const CREDS_HASH = {
   // Para trocar de usuário/senha, execute no console:
   //   hashSHA256('NOVO_CPF').then(h => CREDS_HASH.user = h)
   //   hashSHA256('NOVA_SENHA').then(h => CREDS_HASH.pass = h)
-  CREDS_HASH.user = await hashSHA256(localStorage.getItem('saas_cred_u')||'03818244200');
+  CREDS_HASH.user = await hashSHA256(localStorage.getItem('saas_cred_u')||'00000000000');
   CREDS_HASH.pass = await hashSHA256(localStorage.getItem('saas_cred_p')||'218939');
 })();
 
@@ -23512,9 +23512,14 @@ function exportarCSVFolhaDominio() {
     // ══ MODO ADMIN / RH ═════════════════════════════════
     var autenticado=sessionStorage.getItem('saas_auth')==='1'||localStorage.getItem('saas_auth')==='1';
     if(autenticado){
-      hide('login-screen');
-      show('app','flex');
-      if(typeof initApp==='function') initApp();
+      // Verifica a licença ANTES de abrir (mesmo já logada, ex: recarregou a página)
+      _checarLicencaNoBoot().then(function(bloqueado){
+        if(bloqueado) return; // a tela de bloqueio já foi mostrada
+        hide('login-screen');
+        show('app','flex');
+        if(typeof initApp==='function') initApp();
+        _iniciarMonitorLicenca(); // verifica a licença periodicamente enquanto o sistema está aberto
+      });
     } else {
       show('login-screen','flex');
       hide('app');
@@ -23522,7 +23527,51 @@ function exportarCSVFolhaDominio() {
     }
   }
 
-  // Executa assim que o DOM estiver pronto
+  // Checa a licença no carregamento (reload com sessão ativa).
+  // Retorna true se bloqueou (e já mostrou a tela), false se está liberado.
+  async function _checarLicencaNoBoot(){
+    try{
+      var _app = (typeof _app!=='undefined' && _app) ? _app : (firebase.apps && firebase.apps.length ? firebase.app() : null);
+      if(!_app && typeof FB_CONFIG!=='undefined'){ _app = firebase.initializeApp(FB_CONFIG); }
+      if(!_app) return false;
+      var lic = await firebase.firestore(_app).collection('config').doc('licenca').get();
+      if(!lic.exists) return false;
+      var d = lic.data();
+      var bloqueado = (d.ativo === false);
+      if(!bloqueado && d.proxVenc){
+        var venc = new Date(d.proxVenc+'T00:00:00');
+        var hoje = new Date(); hoje.setHours(0,0,0,0);
+        if(Math.round((hoje - venc)/86400000) > 5){
+          bloqueado = true;
+          d.motivo = d.motivo || 'Pagamento pendente';
+          d.mensagem = d.mensagem || 'Seu acesso está suspenso por pagamento em atraso. Entre em contato para regularizar.';
+        }
+      }
+      if(bloqueado){
+        try{ await firebase.auth(_app).signOut(); }catch(_){}
+        sessionStorage.removeItem('saas_auth'); localStorage.removeItem('saas_auth');
+        if(typeof _mostrarBloqueioLicenca==='function') _mostrarBloqueioLicenca(d);
+        return true;
+      }
+      return false;
+    }catch(_e){ return false; /* fail-open: sem internet não trava */ }
+  }
+
+  // Monitor periódico: enquanto o sistema está aberto, checa a licença
+  // a cada 3 minutos e tranca na hora se o dono bloquear.
+  var _monitorLicencaTimer = null;
+  function _iniciarMonitorLicenca(){
+    if(_monitorLicencaTimer) return; // já rodando
+    _monitorLicencaTimer = setInterval(async function(){
+      var bloqueou = await _checarLicencaNoBoot();
+      if(bloqueou){
+        clearInterval(_monitorLicencaTimer);
+        _monitorLicencaTimer = null;
+        // esconde o app caso esteja aberto
+        var a=document.getElementById('app'); if(a) a.style.display='none';
+      }
+    }, 3 * 60 * 1000); // 3 minutos
+  }
   if(document.readyState==='loading'){
     document.addEventListener('DOMContentLoaded',_initApp,{once:true});
   } else {
@@ -23609,7 +23658,7 @@ function normStr(s){ return (s||'').toLowerCase().normalize('NFD').replace(/[\u0
 let JB_ACTIVE = false;
 
 // ★★★ 18 CANDIDATOS FIXADOS — aparecem em QUALQUER dispositivo, sem internet ★★★
-const CANDIDATOS_FIXOS = [{"id": "mnw98giahpoga", "nome": "Gabriel Henrique Ferreira Boleta", "phone": "(47) 99287-1660", "email": "henriiqferreira@gmail.com", "cpf": "916.952.290-1", "obs": "", "data": "2026-04-14T12:00", "status": "aguardando", "wppSent": false, "emailSent": false, "confirmadoEm": null, "resultado": null, "createdAt": "12/04/2026, 18:07:12", "ts": 1776028032658, "fromForm": false, "cvNome": null}, {"id": "mnw9rlruqyzms", "nome": "Thiago Coelho Do Nascimento", "phone": "(96) 98139-1455", "email": "thiagohunter1214@gmail.com", "cpf": "571.026.524-10", "obs": "", "data": "2026-04-14T13:00", "status": "aguardando", "wppSent": false, "emailSent": false, "confirmadoEm": null, "resultado": null, "createdAt": "12/04/2026, 18:22:05", "ts": 1776028925946, "fromForm": false, "cvNome": null}, {"id": "mnw9uan211ifb", "nome": "mayara Copatti", "phone": "(45) 99853-3707", "email": "mayaracopatti@gmail.com", "cpf": "865.791.791-2", "obs": "", "data": "2026-04-14T16:35", "status": "aguardando", "wppSent": false, "emailSent": false, "confirmadoEm": null, "resultado": null, "createdAt": "12/04/2026, 18:24:11", "ts": 1776029051487, "fromForm": false, "cvNome": null}, {"id": "mnw9w57sygq7g", "nome": "whelys celestino martins", "phone": "(45) 99900-2530", "email": "whelyscelestino@gmail.com", "cpf": "", "obs": "", "data": "2026-04-14T15:05", "status": "aguardando", "wppSent": false, "emailSent": false, "confirmadoEm": null, "resultado": null, "createdAt": "12/04/2026, 18:25:37", "ts": 1776029137768, "fromForm": false, "cvNome": null}, {"id": "mnw9ymyoxclbj", "nome": "KAUANE CAVALCANTE FERREIRA", "phone": "(45) 99818-0296", "email": "kauanecoorve@gmail.com", "cpf": "", "obs": "", "data": "2026-04-14T14:35", "status": "aguardando", "wppSent": false, "emailSent": false, "confirmadoEm": null, "resultado": null, "createdAt": "12/04/2026, 18:27:34", "ts": 1776029254080, "fromForm": false, "cvNome": null}, {"id": "mnwa0g8yfev1c", "nome": "Katia Regina Borges", "phone": "(45) 98404-4894", "email": "katiab3229@gmail.com", "cpf": "", "obs": "", "data": "2026-04-14T14:00", "status": "aguardando", "wppSent": false, "emailSent": false, "confirmadoEm": null, "resultado": null, "createdAt": "12/04/2026, 18:28:58", "ts": 1776029338691, "fromForm": false, "cvNome": null}, {"id": "mnwa27kxo34oj", "nome": "Regimar Tulio dos Santos", "phone": "(45) 99822-7089", "email": "tuliotatica@gmail.com", "cpf": "", "obs": "", "data": "2026-04-14T10:00", "status": "aguardando", "wppSent": false, "emailSent": false, "confirmadoEm": null, "resultado": null, "createdAt": "12/04/2026, 18:30:20", "ts": 1776029420769, "fromForm": false, "cvNome": null}, {"id": "mnwa3rlf5m93i", "nome": "Esdras Gabriel Gomes Moreira", "phone": "(44) 99126-4549", "email": "esdrasgabrielgomesmoreira824@gmail.com", "cpf": "", "obs": "", "data": "2026-04-14T11:00", "status": "aguardando", "wppSent": false, "emailSent": false, "confirmadoEm": null, "resultado": null, "createdAt": "12/04/2026, 18:31:33", "ts": 1776029493363, "fromForm": false, "cvNome": null}, {"id": "mnwa5qohhgsqb", "nome": "Gabriela Estanislau Dos Santos", "phone": "(45) 99942-0435", "email": "gabriela.santos6862@icloud.com", "cpf": "", "obs": "", "data": "2026-04-14T16:00", "status": "aguardando", "wppSent": false, "emailSent": false, "confirmadoEm": null, "resultado": null, "createdAt": "12/04/2026, 18:33:05", "ts": 1776029585489, "fromForm": false, "cvNome": null}, {"id": "mnwa84kvmx5kh", "nome": "Amanda Lima De Oliveira", "phone": "(45) 99911-8861", "email": "amanda.trabalho2008@gmail.com", "cpf": "", "obs": "", "data": "2026-04-15T13:00", "status": "aguardando", "wppSent": false, "emailSent": false, "confirmadoEm": null, "resultado": null, "createdAt": "12/04/2026, 18:34:56", "ts": 1776029696815, "fromForm": false, "cvNome": null}, {"id": "mnwabre3og9lz", "nome": "MATHEUS ROSO", "phone": "(45) 99921-7522", "email": "matheusroso6705@gmail.com", "cpf": "", "obs": "", "data": "2026-04-15T14:00", "status": "aguardando", "wppSent": false, "emailSent": false, "confirmadoEm": null, "resultado": null, "createdAt": "12/04/2026, 18:37:46", "ts": 1776029866347, "fromForm": false, "cvNome": null}, {"id": "mnwad4lcgc2p9", "nome": "Letícia Rocha hilchechem", "phone": "(45) 99914-2625", "email": "leticia.hilchechem@unioeste.br", "cpf": "", "obs": "", "data": "2026-04-15T14:30", "status": "aguardando", "wppSent": false, "emailSent": false, "confirmadoEm": null, "resultado": null, "createdAt": "12/04/2026, 18:38:50", "ts": 1776029930112, "fromForm": false, "cvNome": null}, {"id": "mnwaeuo9ed2s9", "nome": "Pietro Matheus Franklin Bittencourt Pereira", "phone": "(45) 99826-3982", "email": "pietromatheus2015@gmail.com", "cpf": "", "obs": "", "data": "2026-04-14T11:30", "status": "aguardando", "wppSent": false, "emailSent": false, "confirmadoEm": null, "resultado": null, "createdAt": "12/04/2026, 18:40:10", "ts": 1776030010569, "fromForm": false, "cvNome": null}, {"id": "mnwagiagbygs3", "nome": "Ingrid de Melo Soares", "phone": "(45) 99919-1074", "email": "ingriddemelo176@gmail.com", "cpf": "145.105.049-69", "obs": "", "data": "2026-04-15T15:30", "status": "enviado", "wppSent": true, "emailSent": true, "confirmadoEm": null, "resultado": null, "createdAt": "12/04/2026, 18:41:27", "ts": 1776030087832, "fromForm": false, "cvNome": null}, {"id": "mnwal6zvgg2tk", "nome": "Juliana de Jesus", "phone": "(45) 99964-7586", "email": "julianadjesusrg21@gmail.com", "cpf": "", "obs": "", "data": "2026-04-15T16:00", "status": "enviado", "wppSent": true, "emailSent": true, "confirmadoEm": null, "resultado": null, "createdAt": "12/04/2026, 18:45:06", "ts": 1776030306475, "fromForm": false, "cvNome": null}, {"id": "mnwapiqketcbq", "nome": "Simone Poyer Ribas", "phone": "(45) 99148-6994", "email": "simonepoyerribas62@gmail.com", "cpf": "", "obs": "", "data": "2026-04-15T11:00", "status": "aguardando", "wppSent": false, "emailSent": false, "confirmadoEm": null, "resultado": null, "createdAt": "12/04/2026, 18:48:28", "ts": 1776030508316, "fromForm": false, "cvNome": null}, {"id": "mnway4r75hhjm", "nome": "enzo de menezes", "phone": "(45) 99112-5427", "email": "menezesdeenzo12@gmail.com", "cpf": "", "obs": "", "data": "2026-04-15T10:00", "status": "aguardando", "wppSent": false, "emailSent": false, "confirmadoEm": null, "resultado": null, "createdAt": "12/04/2026, 18:55:10", "ts": 1776030910099, "fromForm": false, "cvNome": null}, {"id": "mnwb1ekgj4ycr", "nome": "jefferson lima silva", "phone": "(45) 91428-162", "email": "jefferssonlima400@gmail.com", "cpf": "", "obs": "", "data": "2026-04-14T17:15", "status": "enviado", "wppSent": true, "emailSent": true, "confirmadoEm": null, "resultado": null, "createdAt": "12/04/2026, 18:57:42", "ts": 1776031062784, "fromForm": false, "cvNome": null}];
+const CANDIDATOS_FIXOS = [];
 
 function _mergeCandidatos(remotos) {
   const fixosIds = new Set(CANDIDATOS_FIXOS.map(c => c.id));
