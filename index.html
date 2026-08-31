@@ -15023,16 +15023,57 @@ function _mostrarBloqueioLicenca(dados){
   if(wrap) wrap.style.display='none';
   var app = document.getElementById('app'); if(app) app.style.display='none';
   var old = document.getElementById('__lic_block__'); if(old) old.remove();
+
+  // injeta os keyframes uma vez
+  if(!document.getElementById('__lic_block_style__')){
+    var st=document.createElement('style');
+    st.id='__lic_block_style__';
+    st.textContent=''
+      +'@keyframes licFadeIn{from{opacity:0}to{opacity:1}}'
+      +'@keyframes licPop{0%{opacity:0;transform:translateY(18px) scale(.96)}100%{opacity:1;transform:translateY(0) scale(1)}}'
+      +'@keyframes licPulse{0%,100%{box-shadow:0 0 0 0 rgba(201,168,76,.28)}50%{box-shadow:0 0 0 16px rgba(201,168,76,0)}}'
+      +'@keyframes licSheen{0%{background-position:-200% 0}100%{background-position:200% 0}}'
+      +'.lic-btn{transition:transform .15s,filter .15s,box-shadow .15s}'
+      +'.lic-btn:hover{transform:translateY(-2px)}'
+      +'.lic-wa:hover{filter:brightness(1.06);box-shadow:0 10px 28px rgba(37,211,102,.35)}'
+      +'.lic-retry:hover{background:rgba(255,255,255,.16)!important}';
+    document.head.appendChild(st);
+  }
+
   var div = document.createElement('div');
   div.id='__lic_block__';
-  div.style.cssText='position:fixed;inset:0;z-index:99999;background:linear-gradient(150deg,#0a1628,#0d1f40 55%,#091529);display:flex;align-items:center;justify-content:center;padding:20px;font-family:system-ui,-apple-system,Segoe UI,sans-serif';
+  div.style.cssText='position:fixed;inset:0;z-index:99999;background:radial-gradient(1200px 600px at 50% -10%,rgba(201,168,76,.10),transparent 60%),linear-gradient(150deg,#0a1628,#0d1f40 55%,#091529);display:flex;align-items:center;justify-content:center;padding:20px;font-family:system-ui,-apple-system,Segoe UI,sans-serif;animation:licFadeIn .4s ease';
+
+  // logo do Atlas (usa a mesma imagem embutida do sistema, se existir)
+  var logoImg = (typeof LOGO_BASE64!=='undefined' && LOGO_BASE64) ? LOGO_BASE64 : '';
+  var logoHtml = logoImg
+    ? '<img src="'+logoImg+'" alt="Atlas RH" style="width:52px;height:52px;object-fit:contain;border-radius:12px;background:#fff;padding:6px">'
+    : '<div style="font-family:Georgia,serif;font-size:26px;font-weight:800;letter-spacing:.04em;color:#C9A84C">ATLAS<span style="color:#e8f0ff"> RH</span></div>';
+
   div.innerHTML =
-    '<div style="background:rgba(8,20,50,.75);backdrop-filter:blur(12px);border:1px solid rgba(220,38,38,.35);border-radius:22px;padding:44px 38px;max-width:440px;width:100%;text-align:center;box-shadow:0 24px 70px rgba(0,0,0,.55)">'
-    + '<div style="width:74px;height:74px;border-radius:50%;background:rgba(220,38,38,.15);border:2px solid rgba(220,38,38,.4);display:flex;align-items:center;justify-content:center;margin:0 auto 22px;font-size:34px">🔒</div>'
-    + '<div style="font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:rgba(248,113,113,.85);margin-bottom:8px">Acesso Bloqueado</div>'
-    + '<div style="font-size:22px;font-weight:800;color:#e8f0ff;margin-bottom:14px">'+_escLic(motivo)+'</div>'
-    + '<div style="font-size:14.5px;color:rgba(200,222,255,.7);line-height:1.6;margin-bottom:26px">'+_escLic(msg)+'</div>'
-    + '<button onclick="location.reload()" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;padding:12px 26px;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer">Tentar novamente</button>'
+    '<div style="background:linear-gradient(180deg,rgba(12,26,54,.92),rgba(8,18,42,.92));backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.08);border-radius:26px;padding:0;max-width:440px;width:100%;text-align:center;box-shadow:0 30px 90px rgba(0,0,0,.6);overflow:hidden;animation:licPop .5s cubic-bezier(.2,.7,.2,1)">'
+    // faixa superior dourada com a logo
+    + '<div style="padding:26px 38px 18px;border-bottom:1px solid rgba(255,255,255,.06)">'
+    + logoHtml
+    + '</div>'
+    // corpo
+    + '<div style="padding:32px 38px 38px">'
+    // ícone de cadeado em círculo, com pulso
+    + '<div style="width:82px;height:82px;border-radius:50%;background:radial-gradient(circle at 50% 35%,rgba(201,168,76,.22),rgba(201,168,76,.06));border:1.5px solid rgba(201,168,76,.5);display:flex;align-items:center;justify-content:center;margin:0 auto 22px;animation:licPulse 2.6s ease-in-out infinite">'
+    + '<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/><circle cx="12" cy="16" r="1.4" fill="#C9A84C" stroke="none"/></svg>'
+    + '</div>'
+    + '<div style="font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:rgba(201,168,76,.9);margin-bottom:10px">Acesso temporariamente suspenso</div>'
+    + '<div style="font-size:23px;font-weight:800;color:#eaf1ff;margin-bottom:12px;letter-spacing:.01em">'+_escLic(motivo)+'</div>'
+    + '<div style="font-size:14.5px;color:rgba(205,222,250,.72);line-height:1.65;margin-bottom:28px">'+_escLic(msg)+'</div>'
+    // botões
+    + '<a href="https://wa.me/5545991187639?text='+encodeURIComponent('Olá! Preciso regularizar o acesso ao meu Atlas RH.')+'" target="_blank" class="lic-btn lic-wa" style="display:flex;align-items:center;justify-content:center;gap:9px;width:100%;background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;padding:14px;border-radius:13px;font-weight:800;font-size:15px;text-decoration:none;box-shadow:0 8px 22px rgba(37,211,102,.28);margin-bottom:12px">'
+    + '<svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M17.5 14.4c-.3-.1-1.7-.8-2-.9-.3-.1-.5-.1-.7.1-.2.3-.7.9-.9 1.1-.2.2-.3.2-.6.1-.3-.1-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6.1-.1.3-.3.4-.5.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5C9.6 8.6 9 7.2 8.8 6.6c-.2-.5-.4-.5-.6-.5h-.5c-.2 0-.5.1-.7.3-.3.3-1 1-1 2.4s1 2.8 1.2 3c.1.2 2 3.1 4.9 4.3.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.7-.7 1.9-1.4.2-.7.2-1.2.2-1.4-.1-.1-.3-.2-.6-.3z"/><path d="M12 2C6.5 2 2 6.5 2 12c0 1.8.5 3.4 1.3 4.9L2 22l5.3-1.4c1.4.8 3 1.2 4.7 1.2 5.5 0 10-4.5 10-10S17.5 2 12 2zm0 18.2c-1.5 0-3-.4-4.2-1.2l-.3-.2-3.1.8.8-3-.2-.3C4.4 15 4 13.5 4 12c0-4.4 3.6-8 8-8s8 3.6 8 8-3.6 8-8 8z"/></svg>'
+    + 'Falar com o suporte'
+    + '</a>'
+    + '<button onclick="location.reload()" class="lic-btn lic-retry" style="width:100%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);color:#dfe8f7;padding:13px;border-radius:13px;font-weight:700;font-size:14px;cursor:pointer">Já regularizei — tentar novamente</button>'
+    + '</div>'
+    // rodapé discreto
+    + '<div style="padding:14px;background:rgba(0,0,0,.2);font-size:11.5px;color:rgba(160,185,225,.45);letter-spacing:.03em">Atlas RH · Sistema de Gestão de Departamento Pessoal</div>'
     + '</div>';
   document.body.appendChild(div);
 }
