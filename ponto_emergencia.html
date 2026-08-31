@@ -8,6 +8,7 @@
 <title>Registro de Ponto — Atlas RH</title>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -382,6 +383,7 @@ const GROQ_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct';
 const MODEL_URL  = 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js/weights';
 
 let db=null, modelsOk=false;
+let _authReadyResolve; const AUTH_READY = new Promise(r=>{_authReadyResolve=r;});
 let EMP=null, DESC=null, NEXT='in';
 let STREAM=null, DET_INT=null, TO_INT=null, PROC=false, DETING=false;
 
@@ -389,8 +391,11 @@ async function init(){
   try{
     if(!firebase.apps.length) firebase.initializeApp(FB_CFG);
     db=firebase.firestore();
+    const _fbAuth=typeof firebase.auth==='function'?firebase.auth():null;
+    if(_fbAuth && !_fbAuth.currentUser) await _fbAuth.signInAnonymously();
+    _authReadyResolve();
     loadModels();
-  }catch(e){console.warn(e)}
+  }catch(e){console.warn(e);_authReadyResolve();}
   show('scr-cpf');
   startClock();
 }
@@ -451,6 +456,7 @@ async function buscar(){
   const btn=document.querySelector('#scr-cpf .btn-primary');
   btn.textContent='Buscando...';btn.disabled=true;
   try{
+    await AUTH_READY;
     const snap=await db.collection('bio_users').where('cpf','==',raw).where('active','==',true).limit(1).get();
     if(snap.empty){errEl.textContent='CPF não encontrado ou biometria não cadastrada. Fale com o RH.';errEl.style.display='block';btn.textContent='Continuar →';btn.disabled=false;return;}
     const u=snap.docs[0].data();
@@ -736,6 +742,7 @@ async function authCheck(){
   btn.textContent='Verificando...'; btn.disabled=true;
 
   try{
+    await AUTH_READY;
     // busca na mesma collection que o Portal usa: hr/employees
     const snap = await db.collection('hr').doc('employees').get();
     const list  = snap.exists ? (snap.data().d ? JSON.parse(snap.data().d) : snap.data()) : [];
